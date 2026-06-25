@@ -8,14 +8,24 @@ import java.util.concurrent.Executors;
 public class Server {
     private final ExecutorService threadPool;
 
+    private final AtomicInteger activeClients = new AtomicInteger(0);
+
     public Server(int poolSize) {
-        this.threadPool = Executors.newFixedThreadPool(poolSize);
+        this.threadPool = Executors.newFixedThreadPool(poolSize); //uses unbounded queue linkedblockingqueue 
     }
 
+
     public void handleClient(Socket clientServerSocket) {
+
+        // increase the count of active clients
+        int currentCount = activeClients.incrementAndGet();
+        System.out.println("Active clients connected right now: " + currentCount);
+
+
         try (PrintWriter toClientStream = new PrintWriter(clientServerSocket.getOutputStream(), true)) {
             toClientStream.println("Hello from server " + clientServerSocket.getInetAddress());
 
+            Thread.sleep(2000);// Fake processing
             
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -41,8 +51,19 @@ public class Server {
         } catch (IOException ex) {
             ex.printStackTrace();
         } finally {
-            // Shutdown the thread pool when the server exits
-            server.threadPool.shutdown();
+            //shuting down the server gracefully
+            System.out.println("Shutting down server gracefully...");
+            server.threadPool.shutdown(); // Naye tasks lena band karo
+        
+            try {
+                // Wait karo 10 seconds tak taaki chal rahe clients poore ho sakein
+                if (!server.threadPool.awaitTermination(10, TimeUnit.SECONDS)) {
+                    server.threadPool.shutdownNow(); // Agar phir bhi khatam nahi hue toh force close karo
+                }
+            } catch (InterruptedException ie) {
+                server.threadPool.shutdownNow();
+            }
+            System.out.println("Server stopped safely.");
         }
     }
 }
