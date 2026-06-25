@@ -12,9 +12,11 @@ public class Server {
         this.threadPool = Executors.newFixedThreadPool(poolSize);
     }
 
-    public void handleClient(Socket clientSocket) {
-        try (PrintWriter toSocket = new PrintWriter(clientSocket.getOutputStream(), true)) {
-            toSocket.println("Hello from server " + clientSocket.getInetAddress());
+    public void handleClient(Socket clientServerSocket) {
+        try (PrintWriter toClientStream = new PrintWriter(clientServerSocket.getOutputStream(), true)) {
+            toClientStream.println("Hello from server " + clientServerSocket.getInetAddress());
+
+            
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -31,10 +33,10 @@ public class Server {
             System.out.println("Server is listening on port " + port);
 
             while (true) {
-                Socket clientSocket = serverSocket.accept();
+                Socket clientServerSocket = serverSocket.accept();
 
                 // Use the thread pool to handle the client
-                server.threadPool.execute(() -> server.handleClient(clientSocket));
+                server.threadPool.execute(() -> server.handleClient(clientServerSocket));
             }
         } catch (IOException ex) {
             ex.printStackTrace();

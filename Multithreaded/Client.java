@@ -8,6 +8,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class Client {
+
+    // To test this multi-threaded performance, we simulates high traffic by firing 100 parallel 
+    // connections at the same time:
     
     public Runnable getRunnable() throws UnknownHostException, IOException {
         return new Runnable() {
@@ -17,14 +20,15 @@ public class Client {
                 try {
                     InetAddress address = InetAddress.getByName("localhost");
                     Socket socket = new Socket(address, port);
-                    try (
-                        PrintWriter toSocket = new PrintWriter(socket.getOutputStream(), true);
-                        BufferedReader fromSocket = new BufferedReader(new InputStreamReader(socket.getInputStream()))
-                    ) {
-                        toSocket.println("Hello from Client " + socket.getLocalSocketAddress());
-                        String line = fromSocket.readLine();
+                    try(
+                        PrintWriter toServer = new PrintWriter(socket.getOutputStream(), true);
+                        BufferedReader fromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()))
+                    ){
+                        toServer.println("Hello from Client " + socket.getLocalSocketAddress());
+                        String line = fromServer.readLine();
                         System.out.println("Response from Server " + line);
-                    } catch (IOException e) {
+
+                    }catch (IOException e) {
                         e.printStackTrace();
                     }
                     // The socket will be closed automatically when leaving the try-with-resources block
@@ -46,6 +50,5 @@ public class Client {
                 return;
             }
         }
-        return;
     }
 }
