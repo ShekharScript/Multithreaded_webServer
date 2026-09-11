@@ -1,32 +1,40 @@
-# Multi-Threaded & Pooled TCP Web Server from Scratch
+# Multi-Threaded & Pooled Java HTTP Web Server 
 
-A low-level, high-performance HTTP/TCP Web Server built from scratch in Java using foundational network socket programming and multi-threading control structures. This project was developed iteratively across three distinct concurrency models to study architectural trade-offs, resource optimization, and transport-layer scaling mechanics.
+A low-level, high-performance HTTP/TCP Web Server built entirely from scratch in Core Java. This project was developed to study backend architecture, network socket programming, and concurrency mechanisms by building the underlying tools that modern frameworks (like Spring Boot) abstract away.
 
 ---
 
 ## 🚀 Key Architectural Features
 
-- **Low-Level Socket Programming:** Direct manipulation of TCP layers using Java's native `ServerSocket` and `Socket` APIs.
-- **Custom Thread Pool Engine:** Replaced resource-heavy unbounded thread allocation with a highly configurable `ThreadPoolExecutor`.
-- **Bounded Task Queue Optimization:** Utilizes a custom-bounded `LinkedBlockingQueue` to buffer spikes in incoming traffic safely, eliminating potential `OutOfMemoryError` vulnerabilities.
-- **Thread-Safe Telemetry:** Leverages `AtomicInteger` overhead primitives to safely monitor active network connections in a highly concurrent environment.
-- **Robust Resource Lifecycle Management:** Implements Java's **Try-with-resources** syntax across all endpoints to fully mitigate file descriptor and socket leaks.
-- **Dual-Stage Graceful Shutdown:** Deploys coordination via `.shutdown()` and `.awaitTermination()` patterns to guarantee that active connection pipelines are cleanly processed before server tear-down.
+### HTTP Protocol & Routing Engine
+- **Custom HTTP Parser:** Reads raw TCP `InputStream` byte data and parses it into strictly typed, immutable `HttpRequest` data transfer objects.
+- **Dynamic Request Routing:** Implements a custom `Router` that maps specific HTTP methods and URL paths (e.g., `GET /`) to modular `RequestHandler` interfaces.
+- **Separation of Concerns:** Achieves a production-style architecture by isolating the server lifecycle, socket I/O, HTTP parsing, and business logic into dedicated components.
+- **Structured HTTP Responses:** Dynamically constructs standards-compliant HTTP/1.1 response headers, status codes, and payloads via the `HttpResponse` class.
+
+### Concurrency & Performance Optimization
+- **Low-Level Socket Programming:** Direct manipulation of the transport layer using Java's native `ServerSocket` and `Socket` APIs.
+- **Thread Pool Engine:** Replaced resource-heavy unbounded thread allocation (Thread-per-request) with a highly configurable `ThreadPoolExecutor`.
+- **Bounded Task Queue:** Utilizes a bounded blocking queue to safely buffer spikes in incoming traffic, eliminating `OutOfMemoryError` vulnerabilities during high loads.
+- **Dual-Stage Graceful Shutdown:** Deploys coordination via `.shutdown()` and `.awaitTermination()` patterns to guarantee that active in-flight requests are cleanly processed before releasing server resources.
 
 ---
 
-## 📂 Project Evolution & Directory Structure
-
-The project is structured into three progressive iterations to demonstrate systematic scaling solutions:
+## 🏗️ Request Lifecycle Architecture
 
 ```text
-├── SingleThreaded/       # Iteration 1: Sequential processing model (Baseline)
-│   ├── Server.java       # Blocks on network I/O; handles one client at a time
-│   └── Client.java       # Test client for sequential communication
-│
-├── Multithreaded/        # Iteration 2: Thread-per-request model (Unbounded Concurrency)
-│   ├── Server.java       # Spawns a dedicated OS thread asynchronously per connection
-│   └── Client.java       # Fires 100 parallel requests to test concurrent scaling
-│
-└── ThreadPool/           # Iteration 3: Production-grade Fixed Pool (Optimized)
-    └── Server.java       # Manages fixed worker threads backed by a bounded blocking queue
+Client Connection
+       ↓
+Server (Accepts Socket)
+       ↓
+ThreadPoolExecutor (Assigns Worker Thread)
+       ↓
+ClientHandler (Reads raw InputStream)
+       ↓
+HttpParser (Translates Stream -> HttpRequest POJO)
+       ↓
+Router (Maps HttpRequest.path -> RequestHandler)
+       ↓
+RequestHandler (Executes business logic -> Returns HttpResponse)
+       ↓
+ClientHandler (Writes HttpResponse to OutputStream & Closes)
