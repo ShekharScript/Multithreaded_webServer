@@ -27,7 +27,7 @@ public class Server {
     
     public static void main(String[] args) {
         int port = 8010;
-        Server server = new Server();
+        Server server = new Server(); //class object
         
         try {
             ServerSocket serverSocket = new ServerSocket(port);
@@ -56,22 +56,15 @@ public class Server {
 
 
 
-///above can be simplified to below code :-
+// // above can be simplified to below code :-
 
 // public class Server {
 
 //     public void handleClient(Socket clientSocket){
 //         try{
-//             PrintWriter out =
-//                 new PrintWriter(
-//                     clientSocket.getOutputStream(),
-//                     true
-//                 );
+//             PrintWriter toClient = new PrintWriter( clientSocket.getOutputStream(), true);
 
-//             out.println(
-//                 "Hello from server "
-//                 + clientSocket.getInetAddress()
-//             );
+//             toClient.println( "Hello from server " + clientSocket.getInetAddress() );
 
 //         }catch(IOException e){
 //             e.printStackTrace();
@@ -80,8 +73,7 @@ public class Server {
 
 
 
-//     public static void main(String[] args)
-//     throws Exception{
+//     public static void main(String[] args) throws Exception{
 
 //         Server server = new Server();
 
@@ -90,16 +82,9 @@ public class Server {
 
 
 //         while(true){
+//             Socket clientSocket = serverSocket.accept();
 
-//             Socket clientSocket =
-//                 serverSocket.accept();
-
-
-//             Thread thread =
-//                 new Thread(
-//                     () -> server.handleClient(clientSocket)
-//                 );
-
+//             Thread thread = new Thread( () -> server.handleClient(clientSocket));
 
 //             thread.start();
 

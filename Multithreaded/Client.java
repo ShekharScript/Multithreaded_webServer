@@ -20,12 +20,12 @@ public class Client {
                 try {
                     InetAddress address = InetAddress.getByName("localhost");
                     Socket socket = new Socket(address, port);
-                    try(
+                    try(//try with resources
                         PrintWriter toServer = new PrintWriter(socket.getOutputStream(), true);
                         BufferedReader fromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()))
                     ){
                         toServer.println("Hello from Client " + socket.getLocalSocketAddress());
-                        String line = fromServer.readLine();
+                        String line = fromServer.readLine(); //blocking call 
                         System.out.println("Response from Server " + line);
 
                     }catch (IOException e) {
@@ -42,7 +42,7 @@ public class Client {
     
     public static void main(String[] args){
         Client client = new Client();
-        for(int i=0; i<100; i++){
+        for(int i=0; i<100; i++){ //generate 100 parallel requests to the server
             try{
                 Thread thread = new Thread(client.getRunnable());
                 thread.start();

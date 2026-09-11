@@ -35,7 +35,7 @@ public class Server {
             System.out.println("client said: "+line);
 
 
-            toClient.println("Hello World from the server");
+            toClient.println("Hello from the server");
         }
     }
 

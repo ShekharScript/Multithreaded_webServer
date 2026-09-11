@@ -1,69 +1,114 @@
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Server {
-    private final ExecutorService threadPool;
+    private final int port;
+    private final ThreadPoolExecutor threadPool;
+    private final Router router;
+    private volatile boolean isRunning = true;
+    private ServerSocket serverSocket;
 
-    private final AtomicInteger activeClients = new AtomicInteger(0);
+    // Phase 6: Thread Pool Metrics
+    public static final AtomicInteger totalRequests = new AtomicInteger(0);
 
-    public Server(int poolSize) {
-        this.threadPool = Executors.newFixedThreadPool(poolSize); //uses unbounded queue linkedblockingqueue 
+    public Server(int port) {
+        this.port = port;
+        this.router = new Router();
+        
+        // Phase 5: Initialize Routes
+        setupRoutes();
+
+        // Phase 6: Configure ThreadPoolExecutor
+        this.threadPool = new ThreadPoolExecutor(
+            10,   // Core pool size
+            50,   // Max pool size
+            60L, TimeUnit.SECONDS, // Idle thread keep-alive
+            new ArrayBlockingQueue<>(1000) // Bounded queue for traffic spikes
+        );
+
+        // Phase 7: Register Graceful Shutdown
+        setupGracefulShutdown();
     }
 
+    private void setupRoutes() {
+        // Define endpoints using the Router
+        router.addRoute("GET", "/", request -> {
+            HttpResponse response = new HttpResponse(200, "OK");
+            response.setBody("<h1>Welcome to the Java Server!</h1>", "text/html");
+            return response;
+        });
 
-    public void handleClient(Socket clientServerSocket) {
+        router.addRoute("GET", "/metrics", request -> {
+            HttpResponse response = new HttpResponse(200, "OK");
+            String metrics = "Total requests processed: " + totalRequests.get() + 
+                             "\nActive threads: " + threadPool.getActiveCount();
+            response.setBody(metrics, "text/plain");
+            return response;
+        });
+    }
 
-        // increase the count of active clients
-        int currentCount = activeClients.incrementAndGet();
-        System.out.println("Active clients connected right now: " + currentCount);
+    public void start() {
+        try {
+            serverSocket = new ServerSocket(port);
+            System.out.println("Server started on port " + port);
 
-
-        try (PrintWriter toClientStream = new PrintWriter(clientServerSocket.getOutputStream(), true)) {
-            toClientStream.println("Hello from server " + clientServerSocket.getInetAddress());
-
-            Thread.sleep(2000);// Fake processing
-            
-        } catch (IOException ex) {
-            ex.printStackTrace();
+            while (isRunning) {
+                try {
+                    // Phase 2: Server only accepts connections
+                    Socket clientSocket = serverSocket.accept();
+                    totalRequests.incrementAndGet();
+                    
+                    // Phase 2: Delegate request processing to ClientHandler
+                    threadPool.execute(new ClientHandler(clientSocket, router));
+                    
+                } catch (Exception e) {
+                    // When server shuts down, accept() throws an exception. 
+                    // Only print if we didn't trigger the shutdown intentionally.
+                    if (isRunning) {
+                        System.err.println("Error accepting client connection: " + e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Server exception: " + e.getMessage());
         }
+    }
+
+    private void setupGracefulShutdown() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\nInitiating graceful shutdown...");
+            isRunning = false; // Break the while loop in start()
+            
+            try {
+                // 1. Stop accepting new connections
+                if (serverSocket != null && !serverSocket.isClosed()) {
+                    serverSocket.close();
+                }
+                
+                // 2. Prevent new tasks from being submitted to the pool
+                threadPool.shutdown();
+                System.out.println("Waiting for existing requests to finish...");
+                
+                // 3. Wait for in-flight requests to complete
+                if (!threadPool.awaitTermination(30, TimeUnit.SECONDS)) {
+                    System.out.println("Forcing shutdown of pending tasks...");
+                    threadPool.shutdownNow(); // Force kill if they take too long
+                }
+            } catch (Exception e) {
+                threadPool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+            
+            System.out.println("Server stopped safely.");
+        }));
     }
 
     public static void main(String[] args) {
-        int port = 8010;
-        int poolSize = 10; // Adjust the pool size as needed
-        Server server = new Server(poolSize);
-
-        try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            serverSocket.setSoTimeout(70000);
-            System.out.println("Server is listening on port " + port);
-
-            while (true) {
-                Socket clientServerSocket = serverSocket.accept();
-
-                // Use the thread pool to handle the client
-                server.threadPool.execute(() -> server.handleClient(clientServerSocket));
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        } finally {
-            //shuting down the server gracefully
-            System.out.println("Shutting down server gracefully...");
-            server.threadPool.shutdown(); // Naye tasks lena band karo
-        
-            try {
-                // Wait karo 10 seconds tak taaki chal rahe clients poore ho sakein
-                if (!server.threadPool.awaitTermination(10, TimeUnit.SECONDS)) {
-                    server.threadPool.shutdownNow(); // Agar phir bhi khatam nahi hue toh force close karo
-                }
-            } catch (InterruptedException ie) {
-                server.threadPool.shutdownNow();
-            }
-            System.out.println("Server stopped safely.");
-        }
+        Server server = new Server(8080);
+        server.start();
     }
 }

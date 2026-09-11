@@ -14,12 +14,12 @@ public class Client {
 
         InetAddress address = InetAddress.getByName("localhost"); 
 
-        Socket socket = new Socket(address, port); //attempts connects to the server socket at the specified address and port
+        Socket socket = new Socket(address, port); //attempts connection to the server socket at the specified address and port
 
         PrintWriter toServerStream = new PrintWriter(socket.getOutputStream(), true);
         BufferedReader fromServerStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        toServerStream.println("Hello World from client "+ socket.getLocalSocketAddress() );
+        toServerStream.println("Hello from client "+ socket.getLocalSocketAddress() );
         
         String line = fromServerStream.readLine(); //blocking call, waits until full line is received from the server
         System.out.println("server said: "+line);
