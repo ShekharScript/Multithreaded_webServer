@@ -2,7 +2,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-// This class connects specific URLs (like /) to the logic that handles them
+// This class connects specific routes (like / or /metrics ) to the logic that handles them
 
 
 public class Router {
@@ -19,7 +19,7 @@ public class Router {
         if (handler != null) {
             return handler.handle(request);
         } else {
-            // Return a 404 Not Found if the URL doesn't match any route
+            // Return a 404 Not Found, URL doesn't match any route
             HttpResponse notFoundResponse = new HttpResponse(404, "Not Found");
             notFoundResponse.setBody("<h1>404 - Page Not Found</h1>", "text/html");
             return notFoundResponse;

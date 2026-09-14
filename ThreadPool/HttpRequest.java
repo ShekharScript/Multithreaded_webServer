@@ -2,7 +2,7 @@ import java.util.Map;
 
 
 
-// This class holds all the incoming data (like the URL path and HTTP method) sent by the browser.
+// This class holds all the incoming http data (like the URL path, HTTP method, etc) sent by the browser.
 public class HttpRequest {
     private final String method;
     private final String path;
@@ -10,6 +10,9 @@ public class HttpRequest {
     private final Map<String, String> headers;
     private final String body;
 
+
+    // When our HttpParser finishes reading the raw socket data, it calls this constructor,
+    // passes all the extracted strings, and creates this object.
     public HttpRequest(String method, String path, String version, Map<String, String> headers, String body) {
         this.method = method;
         this.path = path;
@@ -18,7 +21,7 @@ public class HttpRequest {
         this.body = body;
     }
 
-    public String getMethod() { return method; }
+    public String getMethod() { return method; } // Getter methods.
     public String getPath() { return path; }
     public String getVersion() { return version; }
     public Map<String, String> getHeaders() { return headers; }

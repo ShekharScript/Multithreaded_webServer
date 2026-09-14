@@ -5,7 +5,8 @@
 
 public interface RequestHandler {
 
-    HttpResponse handle(HttpRequest request);
+    //one method which takes a http resquest obj and return a http response. 
+    HttpResponse handle(HttpRequest request) ;
 
 
 }
